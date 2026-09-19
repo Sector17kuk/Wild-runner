@@ -73,7 +73,7 @@ async function gameOver(){
   gameOverText.textContent='BETTER LUCK NEXT TIME!';
   gameOverPanel.classList.remove('hidden');
 }
-function start(){playerName=(nameInput.value.trim()||'Player').slice(0,16);localStorage.setItem('wildRunnerName',playerName);score=0;speed=330;spawnTimer=0;appleTimer=.4;obstacles=[];apples=[];particles=[];player.x=W*.23;player.y=groundY-player.h;player.vy=0;player.onGround=true;tiger.x=W+70;tiger.y=groundY-tiger.h;scoreEl.textContent=0;startPanel.classList.add('hidden');gameOverPanel.classList.add('hidden');running=true;audioStart();last=performance.now();requestAnimationFrame(loop)}
+function start(){playerName=(nameInput.value.trim()||'Player').slice(0,16);localStorage.setItem('wildRunnerName',playerName);score=0;speed=330;spawnTimer=0;appleTimer=.4;obstacles=[];apples=[];particles=[];player.x=W*.23;player.y=groundY-player.h;player.vy=0;player.onGround=true;scoreEl.textContent=0;startPanel.classList.add('hidden');gameOverPanel.classList.add('hidden');running=true;audioStart();last=performance.now();requestAnimationFrame(loop)}
 loadLeaderboard();
 async function loadLeaderboard(){
   try{
