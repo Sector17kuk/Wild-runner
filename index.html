@@ -97,11 +97,18 @@ async function loadLeaderboard(){
       }
     );
 
-    const data=await res.json();
-    document.getElementById("leaderboardList").innerHTML =
+  const data=await res.json();
+
+if(!res.ok){
+  document.getElementById("leaderboardList").textContent =
+    "Error "+res.status+": "+JSON.stringify(data);
+  return;
+}
+
+document.getElementById("leaderboardList").innerHTML =
   data.map((x,i)=>
     `<div>${i+1}. ${x.name} — ${x.score}</div>`
-  ).join("");
+  ).join("") || "No scores yet";
   }catch(e){
     console.log("Leaderboard error:",e);
   }
