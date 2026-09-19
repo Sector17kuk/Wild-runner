@@ -9,6 +9,10 @@
 </style>
 </head>
 <body>
+<div id="leaderboard" style="background:#111;color:white;padding:12px;border-radius:12px;margin:10px;font-family:Arial;position:relative;z-index:10;">
+  <b>🏆 Weekly Top 10</b>
+  <div id="leaderboardList">Loading...</div>
+</div>
 <div id="game"><canvas id="canvas"></canvas><div id="hud"><div>🍎 <span id="score">0</span></div><div>🏃 Adarsh</div></div>
 <div id="startPanel" class="panel"><div class="card"><h1>🌿 WILD RUNNER</h1><p>Run through the jungle, collect apples and escape the tiger!</p><input id="nameInput" maxlength="16" placeholder="Enter your name" autocomplete="off"><button id="startBtn">START RUN</button><p class="small">Swipe ↑ to jump over obstacles.</p></div></div>
 <div id="gameOverPanel" class="panel hidden"><div class="card"><h2>🐅 GAME OVER</h2><p id="gameOverText">The tiger caught you!</p><h2>Score: <span id="finalScore">0</span></h2><button id="againBtn">RUN AGAIN</button></div></div><div id="hint">SWIPE UP ↑ TO JUMP</div></div>
@@ -71,6 +75,37 @@ async function gameOver(){
   gameOverPanel.classList.remove('hidden');
 }
 function start(){playerName=(nameInput.value.trim()||'Player').slice(0,16);localStorage.setItem('wildRunnerName',playerName);score=0;speed=330;spawnTimer=0;appleTimer=.4;obstacles=[];apples=[];particles=[];player.x=W*.23;player.y=groundY-player.h;player.vy=0;player.onGround=true;tiger.x=W+70;tiger.y=groundY-tiger.h;scoreEl.textContent=0;startPanel.classList.add('hidden');gameOverPanel.classList.add('hidden');running=true;audioStart();last=performance.now();requestAnimationFrame(loop)}
+loadLeaderboard();
+async function loadLeaderboard(){
+  try{
+    const d=new Date();
+    const day=d.getDay();
+    const diff=day===0?-6:1-day;
+    const monday=new Date(d);
+    monday.setDate(d.getDate()+diff);
+    const weekStart=monday.toISOString().slice(0,10);
+
+    const res=await fetch(
+      SUPABASE_URL+
+      "/rest/v1/leaderboard?week_start=eq."+weekStart+
+      "&select=name,score&order=score.desc&limit=10",
+      {
+        headers:{
+          "apikey":SUPABASE_KEY,
+          "Authorization":"Bearer "+SUPABASE_KEY
+        }
+      }
+    );
+
+    const data=await res.json();
+    document.getElementById("leaderboardList").innerHTML =
+  data.map((x,i)=>
+    `<div>${i+1}. ${x.name} — ${x.score}</div>`
+  ).join("");
+  }catch(e){
+    console.log("Leaderboard error:",e);
+  }
+}
 function update(dt){speed+=dt*4;player.vy+=1900*dt;player.y+=player.vy*dt;if(player.y>=groundY-player.h){player.y=groundY-player.h;player.vy=0;player.onGround=true}spawnTimer-=dt;appleTimer-=dt;if(spawnTimer<=0){spawnObstacle();spawnTimer=Math.max(.72,1.25-Math.min(score,40)*.012)+Math.random()*.35}if(appleTimer<=0){spawnApple();appleTimer=.65+Math.random()*.7}obstacles.forEach(o=>o.x-=speed*dt);apples.forEach(a=>a.x-=speed*dt);for(let i=obstacles.length-1;i>=0;i--){if(obstacles[i].x+obstacles[i].w<-50)obstacles.splice(i,1);else if(collide(player,obstacles[i])){gameOver();return}}for(let i=apples.length-1;i>=0;i--){if(apples[i].x<-30)apples.splice(i,1);else if(collect(apples[i])){score++;scoreEl.textContent=score;beep(900,.08,'sine',.08);setTimeout(()=>beep(1200,.1,'sine',.06),60);apples.splice(i,1)}}tiger.x=Math.max(player.x+65,W-120-score*2);tiger.y=groundY-tiger.h}
 function draw(){background();apples.forEach(appleDraw);obstacles.forEach(obstacleDraw);playerDraw();tigerDraw()}
 function loop(t){if(!running)return;let dt=Math.min((t-last)/1000,.035);last=t;update(dt);draw();if(running)requestAnimationFrame(loop)}
