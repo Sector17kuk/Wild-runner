@@ -13,6 +13,8 @@
 <div id="startPanel" class="panel"><div class="card"><h1>🌿 WILD RUNNER</h1><p>Run through the jungle, collect apples and escape the tiger!</p><input id="nameInput" maxlength="16" placeholder="Enter your name" autocomplete="off"><button id="startBtn">START RUN</button><p class="small">Swipe ↑ to jump over obstacles.</p></div></div>
 <div id="gameOverPanel" class="panel hidden"><div class="card"><h2>🐅 GAME OVER</h2><p id="gameOverText">The tiger caught you!</p><h2>Score: <span id="finalScore">0</span></h2><button id="againBtn">RUN AGAIN</button></div></div><div id="hint">SWIPE UP ↑ TO JUMP</div></div>
 <script>
+const SUPABASE_URL = "https://ryecmnwbdlxvjigxgfml.supabase.co/rest/v1/";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5ZWNtbndiZGx4dmppZ3hnZm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3OTg2NDksImV4cCI6MjEwNTM3NDY0OX0.ZN-w2XU5o1aLbbE-I_YcwR2nr6FkvoFD8JJy-8CSbH8";
 const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d'),scoreEl=document.getElementById('score'),startPanel=document.getElementById('startPanel'),gameOverPanel=document.getElementById('gameOverPanel'),nameInput=document.getElementById('nameInput'),finalScore=document.getElementById('finalScore'),gameOverText=document.getElementById('gameOverText'),hint=document.getElementById('hint');let W=0,H=0,dpr=1,running=false,score=0,last=0,spawnTimer=0,appleTimer=0,speed=330,groundY=0,obstacles=[],apples=[],particles=[],playerName='Player',audioCtx=null;
 const player={x:0,y:0,w:42,h:70,vy:0,onGround:true},tiger={x:0,y:0,w:92,h:55};
 function resize(){dpr=Math.min(devicePixelRatio||1,2);W=canvas.clientWidth;H=canvas.clientHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);groundY=H-105;if(!running){player.x=W*.23;player.y=groundY-player.h}}window.addEventListener('resize',resize);resize();
@@ -27,7 +29,47 @@ function jump(){if(!running||!player.onGround)return;player.vy=-720;player.onGro
 function spawnObstacle(){let types=['log','rock','bush','tree'],type=types[Math.floor(Math.random()*types.length)],w=type==='tree'?65:type==='bush'?60:type==='rock'?52:65,h=type==='tree'?52:type==='bush'?42:type==='rock'?35:35;obstacles.push({x:W+30,y:groundY-h,w,h,type})}
 function spawnApple(){apples.push({x:W+20,y:Math.random()<.45?groundY-95-Math.random()*55:groundY-18,r:11})}
 function collide(a,b){return a.x+6<b.x+b.w-5&&a.x+a.w-6>b.x+5&&a.y+8<b.y+b.h&&a.y+a.h-4>b.y+3}function collect(a){return Math.hypot(player.x+player.w/2-a.x,player.y+player.h/2-a.y)<34}
-function gameOver(){if(!running)return;running=false;beep(150,.4,'sawtooth',.1);setTimeout(()=>beep(90,.6,'sawtooth',.08),220);finalScore.textContent=score;gameOverText.textContent='🐅 The tiger caught '+playerName+'!';gameOverPanel.classList.remove('hidden')}
+async function saveScore(){
+  try{
+    const d=new Date();
+    const day=d.getDay();
+    const diff=day===0?-6:1-day;
+    const monday=new Date(d);
+    monday.setDate(d.getDate()+diff);
+    const weekStart=monday.toISOString().slice(0,10);
+
+    await fetch(SUPABASE_URL+"/rest/v1/leaderboard",{
+      method:"POST",
+      headers:{
+        "apikey":SUPABASE_KEY,
+        "Authorization":"Bearer "+SUPABASE_KEY,
+        "Content-Type":"application/json",
+        "Prefer":"return=minimal"
+      },
+      body:JSON.stringify({
+        name:playerName,
+        score:score,
+        week_start:weekStart
+      })
+    });
+  }catch(e){
+    console.log("Leaderboard error",e);
+  }
+}
+
+async function gameOver(){
+  if(!running)return;
+  running=false;
+
+  saveScore();
+
+  beep(150,.4,'sawtooth',.1);
+  setTimeout(()=>beep(90,.6,'sawtooth',.08),220);
+
+  finalScore.textContent=score;
+  gameOverText.textContent='🐅 The tiger caught you!';
+  gameOverPanel.classList.remove('hidden');
+}
 function start(){playerName=(nameInput.value.trim()||'Player').slice(0,16);localStorage.setItem('wildRunnerName',playerName);score=0;speed=330;spawnTimer=0;appleTimer=.4;obstacles=[];apples=[];particles=[];player.x=W*.23;player.y=groundY-player.h;player.vy=0;player.onGround=true;tiger.x=W+70;tiger.y=groundY-tiger.h;scoreEl.textContent=0;startPanel.classList.add('hidden');gameOverPanel.classList.add('hidden');running=true;audioStart();last=performance.now();requestAnimationFrame(loop)}
 function update(dt){speed+=dt*4;player.vy+=1900*dt;player.y+=player.vy*dt;if(player.y>=groundY-player.h){player.y=groundY-player.h;player.vy=0;player.onGround=true}spawnTimer-=dt;appleTimer-=dt;if(spawnTimer<=0){spawnObstacle();spawnTimer=Math.max(.72,1.25-Math.min(score,40)*.012)+Math.random()*.35}if(appleTimer<=0){spawnApple();appleTimer=.65+Math.random()*.7}obstacles.forEach(o=>o.x-=speed*dt);apples.forEach(a=>a.x-=speed*dt);for(let i=obstacles.length-1;i>=0;i--){if(obstacles[i].x+obstacles[i].w<-50)obstacles.splice(i,1);else if(collide(player,obstacles[i])){gameOver();return}}for(let i=apples.length-1;i>=0;i--){if(apples[i].x<-30)apples.splice(i,1);else if(collect(apples[i])){score++;scoreEl.textContent=score;beep(900,.08,'sine',.08);setTimeout(()=>beep(1200,.1,'sine',.06),60);apples.splice(i,1)}}tiger.x=Math.max(player.x+65,W-120-score*2);tiger.y=groundY-tiger.h}
 function draw(){background();apples.forEach(appleDraw);obstacles.forEach(obstacleDraw);playerDraw();tigerDraw()}
