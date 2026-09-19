@@ -1,31 +1,2106 @@
 <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Wild Runner</title>
 
-<html>
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
 
-<body style="background:black;color:white;text-align:center;font-family:Arial">
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#111;
+  font-family:Arial,sans-serif;
+}
 
-<h1>WILD RUNNER TEST</h1>
+body{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
 
-<input id="name" placeholder="Enter your name">
+#game{
+  position:relative;
+  width:100%;
+  height:100%;
+  max-width:600px;
+  overflow:hidden;
+  background:#8ed0ff;
+}
 
-<button onclick="start()">START RUN</button>
+canvas{
+  display:block;
+  width:100%;
+  height:100%;
+  touch-action:none;
+}
 
-<h2 id="result"></h2>
+#hud{
+  position:absolute;
+  top:14px;
+  left:14px;
+  right:14px;
+  display:flex;
+  justify-content:space-between;
+  color:white;
+  font-weight:800;
+  font-size:20px;
+  text-shadow:2px 2px 3px #000;
+  pointer-events:none;
+  z-index:20;
+}
+
+#leaderboard{
+  position:absolute;
+  top:52px;
+  right:10px;
+  width:190px;
+  max-height:220px;
+  overflow:hidden;
+  background:rgba(0,0,0,.80);
+  color:white;
+  padding:10px;
+  border-radius:12px;
+  font-size:14px;
+  z-index:25;
+}
+
+#leaderboard b{
+  display:block;
+  margin-bottom:6px;
+  font-size:15px;
+}
+
+#leaderboardList{
+  line-height:1.55;
+}
+
+.panel{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.42);
+  padding:25px;
+  z-index:30;
+}
+
+.card{
+  width:min(92%,390px);
+  background:rgba(255,255,255,.97);
+  border-radius:22px;
+  padding:28px 22px;
+  text-align:center;
+  box-shadow:0 12px 40px rgba(0,0,0,.35);
+}
+
+h1{
+  margin:0 0 8px;
+  font-size:42px;
+  color:#163d20;
+}
+
+h2{
+  margin:0 0 12px;
+  color:#222;
+}
+
+p{
+  color:#444;
+  line-height:1.45;
+}
+
+input{
+  width:100%;
+  padding:14px;
+  border:2px solid #bbb;
+  border-radius:12px;
+  font-size:18px;
+  outline:none;
+}
+
+button{
+  margin-top:14px;
+  width:100%;
+  padding:14px;
+  border:0;
+  border-radius:12px;
+  background:#176b32;
+  color:white;
+  font-size:19px;
+  font-weight:800;
+}
+
+.small{
+  font-size:14px;
+  color:#666;
+}
+
+.hidden{
+  display:none!important;
+}
+
+#hint{
+  position:absolute;
+  bottom:15px;
+  left:0;
+  right:0;
+  text-align:center;
+  color:white;
+  font-weight:700;
+  text-shadow:1px 1px 3px #000;
+  pointer-events:none;
+  z-index:20;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<canvas id="canvas"></canvas>
+
+<div id="hud">
+  <div>🍎 <span id="score">0</span></div>
+  <div>🏃 WILD RUNNER</div>
+</div>
+
+<div id="leaderboard">
+  <b>🏆 Weekly Top 10</b>
+  <div id="leaderboardList">Loading...</div>
+</div>
+
+<div id="startPanel" class="panel">
+  <div class="card">
+
+    <h1>🌿 WILD RUNNER</h1>
+
+    <p>
+      Run through the jungle and collect apples!
+    </p>
+
+    <input
+      id="nameInput"
+      maxlength="16"
+      placeholder="Enter your name"
+      autocomplete="off"
+    >
+
+    <button id="startBtn">
+      START RUN
+    </button>
+
+    <p class="small">
+      Swipe ↑ to jump over obstacles.
+    </p>
+
+  </div>
+</div>
+
+<div id="gameOverPanel" class="panel hidden">
+
+  <div class="card">
+
+    <h2>💥 GAME OVER</h2>
+
+    <p>
+      You hit an obstacle!
+    </p>
+
+    <h2>
+      Score: <span id="finalScore">0</span>
+    </h2>
+
+    <button id="againBtn">
+      RUN AGAIN
+    </button>
+
+  </div>
+
+</div>
+
+<div id="hint">
+  SWIPE UP ↑ TO JUMP
+</div>
+
+</div>
+
 
 <script>
 
-function start(){
+/* =====================================================
+   SUPABASE
+===================================================== */
 
-    const name = document.getElementById("name").value.trim();
+const SUPABASE_URL =
+"https://ryecmnwbdlxvjigxgfml.supabase.co";
 
-    document.getElementById("result").textContent =
+/*
+KEEP YOUR EXISTING ANON KEY HERE.
+Do not use your database password.
+Do not use your service-role key.
+*/
 
-        name ? "GAME STARTED ✅ " + name : "ENTER NAME FIRST";
+const SUPABASE_KEY =
+"PASTE YOUR EXISTING ANON KEY HERE";
+
+
+/* =====================================================
+   ELEMENTS
+===================================================== */
+
+const canvas =
+document.getElementById("canvas");
+
+const ctx =
+canvas.getContext("2d");
+
+const scoreEl =
+document.getElementById("score");
+
+const startPanel =
+document.getElementById("startPanel");
+
+const gameOverPanel =
+document.getElementById("gameOverPanel");
+
+const nameInput =
+document.getElementById("nameInput");
+
+const finalScore =
+document.getElementById("finalScore");
+
+const leaderboardList =
+document.getElementById("leaderboardList");
+
+
+/* =====================================================
+   VARIABLES
+===================================================== */
+
+let W=0;
+let H=0;
+let dpr=1;
+
+let running=false;
+
+let score=0;
+
+let last=0;
+
+let spawnTimer=0;
+
+let appleTimer=0;
+
+let speed=330;
+
+let groundY=0;
+
+let obstacles=[];
+
+let apples=[];
+
+let playerName="";
+
+let audioCtx=null;
+
+
+/* =====================================================
+   PLAYER
+===================================================== */
+
+const player={
+  x:0,
+  y:0,
+  w:42,
+  h:70,
+  vy:0,
+  onGround:true
+};
+
+
+/* =====================================================
+   RESIZE
+===================================================== */
+
+function resize(){
+
+  dpr=Math.min(
+    window.devicePixelRatio||1,
+    2
+  );
+
+  W=canvas.clientWidth;
+
+  H=canvas.clientHeight;
+
+  canvas.width=W*dpr;
+
+  canvas.height=H*dpr;
+
+  ctx.setTransform(
+    dpr,
+    0,
+    0,
+    dpr,
+    0,
+    0
+  );
+
+  groundY=H-105;
+
+  if(!running){
+
+    player.x=W*.23;
+
+    player.y=
+      groundY-player.h;
+
+  }
 
 }
+
+window.addEventListener(
+  "resize",
+  resize
+);
+
+resize();
+
+
+/* =====================================================
+   ROUNDED RECTANGLE
+===================================================== */
+
+function rr(
+  x,
+  y,
+  w,
+  h,
+  r
+){
+
+  ctx.beginPath();
+
+  ctx.roundRect(
+    x,
+    y,
+    w,
+    h,
+    r
+  );
+
+}
+
+
+/* =====================================================
+   BACKGROUND
+===================================================== */
+
+function background(){
+
+  let g=
+    ctx.createLinearGradient(
+      0,
+      0,
+      0,
+      H
+    );
+
+  g.addColorStop(
+    0,
+    "#74c9ff"
+  );
+
+  g.addColorStop(
+    .55,
+    "#b7e7ff"
+  );
+
+  g.addColorStop(
+    .56,
+    "#79bd55"
+  );
+
+  g.addColorStop(
+    1,
+    "#39752f"
+  );
+
+  ctx.fillStyle=g;
+
+  ctx.fillRect(
+    0,
+    0,
+    W,
+    H
+  );
+
+
+  ctx.fillStyle="#6da36d";
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    0,
+    groundY-80
+  );
+
+  ctx.lineTo(
+    W*.2,
+    groundY-210
+  );
+
+  ctx.lineTo(
+    W*.42,
+    groundY-80
+  );
+
+  ctx.lineTo(
+    W*.65,
+    groundY-190
+  );
+
+  ctx.lineTo(
+    W,
+    groundY-70
+  );
+
+  ctx.lineTo(
+    W,
+    groundY
+  );
+
+  ctx.lineTo(
+    0,
+    groundY
+  );
+
+  ctx.fill();
+
+
+  let off=
+    (
+      performance.now()/1000*
+      speed*.08
+    )%120;
+
+
+  for(
+    let x=-120-off;
+    x<W+120;
+    x+=120
+  ){
+
+    tree(
+      x,
+      groundY-10,
+      1
+    );
+
+    tree(
+      x+55,
+      groundY-5,
+      .72
+    );
+
+  }
+
+
+  ctx.fillStyle="#2d6b2a";
+
+  ctx.fillRect(
+    0,
+    groundY,
+    W,
+    H-groundY
+  );
+
+}
+
+
+/* =====================================================
+   TREE
+===================================================== */
+
+function tree(
+  x,
+  y,
+  s
+){
+
+  ctx.save();
+
+  ctx.translate(
+    x,
+    y
+  );
+
+  ctx.scale(
+    s,
+    s
+  );
+
+  ctx.fillStyle="#5b3924";
+
+  ctx.fillRect(
+    -10,
+    -145,
+    20,
+    145
+  );
+
+  ctx.fillStyle="#174f25";
+
+  [
+    [0,-155,48],
+    [35,-125,40],
+    [-35,-125,40],
+    [0,-105,55]
+  ].forEach(a=>{
+
+    ctx.beginPath();
+
+    ctx.arc(
+      a[0],
+      a[1],
+      a[2],
+      0,
+      Math.PI*2
+    );
+
+    ctx.fill();
+
+  });
+
+  ctx.restore();
+
+}
+
+
+/* =====================================================
+   RUNNER
+   FACE = RIGHT
+===================================================== */
+
+function playerDraw(){
+
+  const x=
+    player.x;
+
+  const y=
+    player.y;
+
+
+  /*
+    LEFT LEG
+  */
+
+  ctx.strokeStyle="#263238";
+
+  ctx.lineWidth=8;
+
+  ctx.lineCap="round";
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    x+17,
+    y+52
+  );
+
+  ctx.lineTo(
+    x+9,
+    y+68
+  );
+
+  ctx.stroke();
+
+
+  /*
+    RIGHT LEG
+  */
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    x+28,
+    y+52
+  );
+
+  ctx.lineTo(
+    x+37,
+    y+68
+  );
+
+  ctx.stroke();
+
+
+  /*
+    SHOES
+  */
+
+  ctx.fillStyle="#111";
+
+  ctx.fillRect(
+    x+2,
+    y+66,
+    16,
+    6
+  );
+
+  ctx.fillRect(
+    x+32,
+    y+66,
+    16,
+    6
+  );
+
+
+  /*
+    BODY
+  */
+
+  ctx.fillStyle="#176b32";
+
+  rr(
+    x+7,
+    y+23,
+    31,
+    34,
+    8
+  );
+
+  ctx.fill();
+
+
+  /*
+    BACK ARM
+  */
+
+  ctx.strokeStyle="#f0b27a";
+
+  ctx.lineWidth=7;
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    x+10,
+    y+28
+  );
+
+  ctx.lineTo(
+    x-2,
+    y+43
+  );
+
+  ctx.stroke();
+
+
+  /*
+    FRONT ARM
+  */
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    x+36,
+    y+28
+  );
+
+  ctx.lineTo(
+    x+49,
+    y+39
+  );
+
+  ctx.stroke();
+
+
+  /*
+    HEAD
+  */
+
+  ctx.fillStyle="#f0b27a";
+
+  ctx.beginPath();
+
+  ctx.arc(
+    x+23,
+    y+13,
+    15,
+    0,
+    Math.PI*2
+  );
+
+  ctx.fill();
+
+
+  /*
+    HAIR
+  */
+
+  ctx.fillStyle="#24180f";
+
+  ctx.beginPath();
+
+  ctx.arc(
+    x+23,
+    y+7,
+    15,
+    Math.PI,
+    Math.PI*2
+  );
+
+  ctx.fill();
+
+
+  /*
+    RIGHT-FACING EYE
+    This is deliberately on
+    the RIGHT side of the head.
+  */
+
+  ctx.fillStyle="#111";
+
+  ctx.beginPath();
+
+  ctx.arc(
+    x+30,
+    y+11,
+    2.5,
+    0,
+    Math.PI*2
+  );
+
+  ctx.fill();
+
+
+  /*
+    RIGHT-FACING NOSE
+  */
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    x+35,
+    y+14
+  );
+
+  ctx.lineTo(
+    x+42,
+    y+18
+  );
+
+  ctx.lineTo(
+    x+35,
+    y+20
+  );
+
+  ctx.closePath();
+
+  ctx.fill();
+
+
+  /*
+    SMALL SMILE
+  */
+
+  ctx.strokeStyle="#7d3b2b";
+
+  ctx.lineWidth=1.5;
+
+  ctx.beginPath();
+
+  ctx.arc(
+    x+34,
+    y+20,
+    5,
+    0,
+    Math.PI/2
+  );
+
+  ctx.stroke();
+
+}
+
+
+/* =====================================================
+   OBSTACLES
+===================================================== */
+
+function obstacleDraw(o){
+
+  ctx.save();
+
+  ctx.translate(
+    o.x,
+    o.y
+  );
+
+
+  if(o.type==="log"){
+
+    ctx.fillStyle="#70411f";
+
+    rr(
+      0,
+      10,
+      o.w,
+      25,
+      9
+    );
+
+    ctx.fill();
+
+  }
+
+
+  else if(o.type==="rock"){
+
+    ctx.fillStyle="#777";
+
+    ctx.beginPath();
+
+    ctx.moveTo(0,35);
+
+    ctx.lineTo(8,10);
+
+    ctx.lineTo(27,0);
+
+    ctx.lineTo(45,14);
+
+    ctx.lineTo(51,35);
+
+    ctx.closePath();
+
+    ctx.fill();
+
+  }
+
+
+  else if(o.type==="bush"){
+
+    ctx.fillStyle="#1e6327";
+
+    [
+      [12,24,18],
+      [29,15,21],
+      [48,25,19]
+    ].forEach(a=>{
+
+      ctx.beginPath();
+
+      ctx.arc(
+        a[0],
+        a[1],
+        a[2],
+        0,
+        Math.PI*2
+      );
+
+      ctx.fill();
+
+    });
+
+  }
+
+
+  else{
+
+    ctx.fillStyle="#70411f";
+
+    ctx.save();
+
+    ctx.rotate(-.15);
+
+    ctx.fillRect(
+      0,
+      14,
+      o.w,
+      24
+    );
+
+    ctx.restore();
+
+  }
+
+  ctx.restore();
+
+}
+
+
+/* =====================================================
+   APPLE
+===================================================== */
+
+function appleDraw(a){
+
+  ctx.fillStyle="#e52d2d";
+
+  ctx.beginPath();
+
+  ctx.arc(
+    a.x,
+    a.y,
+    11,
+    0,
+    Math.PI*2
+  );
+
+  ctx.fill();
+
+  ctx.fillStyle="#4a9b35";
+
+  ctx.beginPath();
+
+  ctx.ellipse(
+    a.x+8,
+    a.y-9,
+    7,
+    3,
+    -.4,
+    0,
+    Math.PI*2
+  );
+
+  ctx.fill();
+
+}
+
+
+/* =====================================================
+   SOUND
+===================================================== */
+
+function beep(
+  frequency,
+  duration,
+  type,
+  volume
+){
+
+  if(!audioCtx)return;
+
+  try{
+
+    const osc=
+      audioCtx.createOscillator();
+
+    const gain=
+      audioCtx.createGain();
+
+    osc.type=type;
+
+    osc.frequency.value=
+      frequency;
+
+    gain.gain.value=
+      volume;
+
+    osc.connect(gain);
+
+    gain.connect(
+      audioCtx.destination
+    );
+
+    osc.start();
+
+    osc.stop(
+      audioCtx.currentTime+
+      duration
+    );
+
+  }catch(e){}
+
+}
+
+
+function audioStart(){
+
+  if(audioCtx)return;
+
+  try{
+
+    audioCtx=
+      new(
+        window.AudioContext||
+        window.webkitAudioContext
+      )();
+
+    audioCtx.resume();
+
+  }catch(e){}
+
+}
+
+
+/* =====================================================
+   JUMP
+===================================================== */
+
+function jump(){
+
+  if(
+    !running||
+    !player.onGround
+  ){
+    return;
+  }
+
+  player.vy=-720;
+
+  player.onGround=false;
+
+  beep(
+    520,
+    .12,
+    "square",
+    .07
+  );
+
+}
+
+
+/* =====================================================
+   SPAWN
+===================================================== */
+
+function spawnObstacle(){
+
+  const types=[
+    "log",
+    "rock",
+    "bush",
+    "tree"
+  ];
+
+  const type=
+    types[
+      Math.floor(
+        Math.random()*
+        types.length
+      )
+    ];
+
+
+  const w=
+    type==="tree"
+      ?65
+      :type==="bush"
+      ?60
+      :type==="rock"
+      ?52
+      :65;
+
+
+  const h=
+    type==="tree"
+      ?52
+      :type==="bush"
+      ?42
+      :type==="rock"
+      ?35
+      :35;
+
+
+  obstacles.push({
+
+    x:W+30,
+
+    y:groundY-h,
+
+    w:w,
+
+    h:h,
+
+    type:type
+
+  });
+
+}
+
+
+function spawnApple(){
+
+  apples.push({
+
+    x:W+20,
+
+    y:
+      Math.random()<.45
+      ?groundY-95-
+       Math.random()*55
+      :groundY-18,
+
+    r:11
+
+  });
+
+}
+
+
+/* =====================================================
+   COLLISION
+===================================================== */
+
+function collide(a,b){
+
+  return(
+    a.x+6<
+      b.x+b.w-5&&
+
+    a.x+a.w-6>
+      b.x+5&&
+
+    a.y+8<
+      b.y+b.h&&
+
+    a.y+a.h-4>
+      b.y+3
+  );
+
+}
+
+
+function collect(a){
+
+  return(
+    Math.hypot(
+      player.x+
+        player.w/2-
+        a.x,
+
+      player.y+
+        player.h/2-
+        a.y
+    )<34
+  );
+
+}
+
+
+/* =====================================================
+   WEEK
+===================================================== */
+
+function getWeekStart(){
+
+  const d=
+    new Date();
+
+  const day=
+    d.getDay();
+
+  const diff=
+    day===0
+    ?-6
+    :1-day;
+
+  const monday=
+    new Date(d);
+
+  monday.setDate(
+    d.getDate()+diff
+  );
+
+  const year=
+    monday.getFullYear();
+
+  const month=
+    String(
+      monday.getMonth()+1
+    ).padStart(2,"0");
+
+  const date=
+    String(
+      monday.getDate()
+    ).padStart(2,"0");
+
+  return(
+    year+
+    "-"+
+    month+
+    "-"+
+    date
+  );
+
+}
+
+
+/* =====================================================
+   SAVE SCORE
+===================================================== */
+
+async function saveScore(){
+
+  try{
+
+    const weekStart=
+      getWeekStart();
+
+
+    /*
+      Get ALL rows for this week.
+      We don't search by exact name here,
+      because old duplicate rows may exist.
+    */
+
+    const response=
+      await fetch(
+        SUPABASE_URL+
+        "/rest/v1/leaderboard"+
+        "?week_start=eq."+
+        weekStart+
+        "&select=id,name,score",
+        {
+          headers:{
+            "apikey":
+              SUPABASE_KEY,
+
+            "Authorization":
+              "Bearer "+
+              SUPABASE_KEY
+          }
+        }
+      );
+
+
+    const rows=
+      await response.json();
+
+
+    if(!response.ok){
+
+      console.log(
+        "Leaderboard read error:",
+        rows
+      );
+
+      return;
+
+    }
+
+
+    const target=
+      playerName
+        .trim()
+        .toLowerCase();
+
+
+    /*
+      Find EVERY row belonging
+      to this player.
+    */
+
+    const mine=
+      rows.filter(
+        row=>
+          row.name
+            .trim()
+            .toLowerCase()
+          ===target
+      );
+
+
+    let highest=0;
+
+    let highestRow=null;
+
+
+    mine.forEach(row=>{
+
+      const s=
+        Number(row.score)||0;
+
+      if(s>highest){
+
+        highest=s;
+
+        highestRow=row;
+
+      }
+
+    });
+
+
+    /*
+      If old score is already higher,
+      don't change it.
+    */
+
+    if(highest>=score){
+
+      loadLeaderboard();
+
+      return;
+
+    }
+
+
+    /*
+      If a row already exists,
+      UPDATE the highest row.
+    */
+
+    if(highestRow){
+
+      await fetch(
+        SUPABASE_URL+
+        "/rest/v1/leaderboard"+
+        "?id=eq."+
+        highestRow.id,
+        {
+          method:"PATCH",
+
+          headers:{
+            "apikey":
+              SUPABASE_KEY,
+
+            "Authorization":
+              "Bearer "+
+              SUPABASE_KEY,
+
+            "Content-Type":
+              "application/json",
+
+            "Prefer":
+              "return=minimal"
+          },
+
+          body:
+            JSON.stringify({
+              score:score
+            })
+        }
+      );
+
+    }
+
+
+    /*
+      If the player has never scored
+      this week, INSERT a new row.
+    */
+
+    else{
+
+      await fetch(
+        SUPABASE_URL+
+        "/rest/v1/leaderboard",
+        {
+          method:"POST",
+
+          headers:{
+            "apikey":
+              SUPABASE_KEY,
+
+            "Authorization":
+              "Bearer "+
+              SUPABASE_KEY,
+
+            "Content-Type":
+              "application/json",
+
+            "Prefer":
+              "return=minimal"
+          },
+
+          body:
+            JSON.stringify({
+
+              name:
+                playerName.trim(),
+
+              score:
+                score,
+
+              week_start:
+                weekStart
+
+            })
+        }
+      );
+
+    }
+
+
+    await loadLeaderboard();
+
+  }
+
+  catch(error){
+
+    console.log(
+      "Save score error:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   GAME OVER
+===================================================== */
+
+async function gameOver(){
+
+  if(!running)return;
+
+  running=false;
+
+  finalScore.textContent=
+    score;
+
+  gameOverPanel
+    .classList
+    .remove("hidden");
+
+
+  /*
+    Save the score AFTER
+    stopping the game.
+  */
+
+  await saveScore();
+
+}
+
+
+/* =====================================================
+   START GAME
+===================================================== */
+
+function start(){
+
+  /*
+    IMPORTANT:
+    First use localStorage.
+    Only ask for input if there
+    is no saved name.
+  */
+
+  const saved=
+    localStorage.getItem(
+      "wildRunnerName"
+    );
+
+
+  if(saved){
+
+    playerName=
+      saved;
+
+  }
+
+  else{
+
+    const entered=
+      nameInput.value.trim();
+
+    if(!entered){
+
+      nameInput.focus();
+
+      return;
+
+    }
+
+    playerName=
+      entered.slice(0,16);
+
+    localStorage.setItem(
+      "wildRunnerName",
+      playerName
+    );
+
+  }
+
+
+  /*
+    Hide the name input after
+    the first successful start.
+  */
+
+  nameInput.value=
+    playerName;
+
+
+  score=0;
+
+  speed=330;
+
+  spawnTimer=0;
+
+  appleTimer=.4;
+
+  obstacles=[];
+
+  apples=[];
+
+
+  player.x=
+    W*.23;
+
+  player.y=
+    groundY-player.h;
+
+  player.vy=0;
+
+  player.onGround=true;
+
+
+  scoreEl.textContent="0";
+
+
+  startPanel
+    .classList
+    .add("hidden");
+
+  gameOverPanel
+    .classList
+    .add("hidden");
+
+
+  running=true;
+
+  audioStart();
+
+  last=
+    performance.now();
+
+  requestAnimationFrame(
+    loop
+  );
+
+}
+
+
+/* =====================================================
+   LEADERBOARD
+===================================================== */
+
+async function loadLeaderboard(){
+
+  try{
+
+    const weekStart=
+      getWeekStart();
+
+
+    const response=
+      await fetch(
+        SUPABASE_URL+
+        "/rest/v1/leaderboard"+
+        "?week_start=eq."+
+        weekStart+
+        "&select=name,score"+
+        "&order=score.desc"+
+        "&limit=100",
+        {
+          headers:{
+            "apikey":
+              SUPABASE_KEY,
+
+            "Authorization":
+              "Bearer "+
+              SUPABASE_KEY
+          }
+        }
+      );
+
+
+    const rows=
+      await response.json();
+
+
+    if(!response.ok){
+
+      leaderboardList.textContent=
+        "Leaderboard unavailable";
+
+      console.log(
+        "Leaderboard error:",
+        rows
+      );
+
+      return;
+
+    }
+
+
+    /*
+      Combine duplicate names.
+      Each name gets ONE entry,
+      with its highest score.
+    */
+
+    const bestByName={};
+
+
+    rows.forEach(row=>{
+
+      const cleanName=
+        row.name
+          .trim();
+
+      const key=
+        cleanName
+          .toLowerCase();
+
+      const current=
+        Number(
+          row.score
+        )||0;
+
+
+      if(
+        !bestByName[key]||
+        current>
+        bestByName[key].score
+      ){
+
+        bestByName[key]={
+
+          name:cleanName,
+
+          score:current
+
+        };
+
+      }
+
+    });
+
+
+    /*
+      Sort highest to lowest.
+    */
+
+    const top=
+      Object.values(
+        bestByName
+      )
+      .sort(
+        (a,b)=>
+          b.score-a.score
+      )
+      .slice(0,10);
+
+
+    if(!top.length){
+
+      leaderboardList.textContent=
+        "No scores yet";
+
+      return;
+
+    }
+
+
+    leaderboardList.innerHTML=
+      top.map(
+        (row,index)=>
+          `<div>${index+1}. ${escapeHTML(row.name)} — ${row.score}</div>`
+      ).join("");
+
+  }
+
+  catch(error){
+
+    console.log(
+      "Leaderboard error:",
+      error
+    );
+
+    leaderboardList.textContent=
+      "Leaderboard unavailable";
+
+  }
+
+}
+
+
+/* =====================================================
+   SECURITY FOR PLAYER NAMES
+===================================================== */
+
+function escapeHTML(text){
+
+  return String(text)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+
+}
+
+
+/* =====================================================
+   GAME UPDATE
+===================================================== */
+
+function update(dt){
+
+  speed+=
+    dt*4;
+
+
+  player.vy+=
+    1900*dt;
+
+  player.y+=
+    player.vy*dt;
+
+
+  if(
+    player.y>=
+    groundY-player.h
+  ){
+
+    player.y=
+      groundY-player.h;
+
+    player.vy=0;
+
+    player.onGround=true;
+
+  }
+
+
+  spawnTimer-=dt;
+
+  appleTimer-=dt;
+
+
+  if(spawnTimer<=0){
+
+    spawnObstacle();
+
+    spawnTimer=
+      Math.max(
+        .72,
+        1.25-
+        Math.min(
+          score,
+          40
+        )*.012
+      )+
+      Math.random()*.35;
+
+  }
+
+
+  if(appleTimer<=0){
+
+    spawnApple();
+
+    appleTimer=
+      .65+
+      Math.random()*.7;
+
+  }
+
+
+  obstacles.forEach(
+    o=>
+      o.x-=speed*dt
+  );
+
+
+  apples.forEach(
+    a=>
+      a.x-=speed*dt
+  );
+
+
+  for(
+    let i=
+      obstacles.length-1;
+
+    i>=0;
+
+    i--
+  ){
+
+    if(
+      obstacles[i].x+
+      obstacles[i].w<
+      -50
+    ){
+
+      obstacles.splice(
+        i,
+        1
+      );
+
+    }
+
+    else if(
+      collide(
+        player,
+        obstacles[i]
+      )
+    ){
+
+      gameOver();
+
+      return;
+
+    }
+
+  }
+
+
+  for(
+    let i=
+      apples.length-1;
+
+    i>=0;
+
+    i--
+  ){
+
+    if(
+      apples[i].x<
+      -30
+    ){
+
+      apples.splice(
+        i,
+        1
+      );
+
+    }
+
+    else if(
+      collect(
+        apples[i]
+      )
+    ){
+
+      score++;
+
+      scoreEl.textContent=
+        score;
+
+      beep(
+        900,
+        .08,
+        "sine",
+        .08
+      );
+
+      apples.splice(
+        i,
+        1
+      );
+
+    }
+
+  }
+
+}
+
+
+/* =====================================================
+   DRAW
+===================================================== */
+
+function draw(){
+
+  background();
+
+  apples.forEach(
+    appleDraw
+  );
+
+  obstacles.forEach(
+    obstacleDraw
+  );
+
+  playerDraw();
+
+}
+
+
+/* =====================================================
+   LOOP
+===================================================== */
+
+function loop(t){
+
+  if(!running)return;
+
+
+  const dt=
+    Math.min(
+      (t-last)/1000,
+      .035
+    );
+
+
+  last=t;
+
+
+  update(dt);
+
+  draw();
+
+
+  if(running){
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   TOUCH
+===================================================== */
+
+let sy=0;
+let sx=0;
+
+
+canvas.addEventListener(
+  "touchstart",
+  e=>{
+
+    const t=
+      e.changedTouches[0];
+
+    sy=t.clientY;
+
+    sx=t.clientX;
+
+    e.preventDefault();
+
+  },
+  {passive:false}
+);
+
+
+canvas.addEventListener(
+  "touchend",
+  e=>{
+
+    const t=
+      e.changedTouches[0];
+
+    const dy=
+      sy-t.clientY;
+
+    const dx=
+      Math.abs(
+        t.clientX-sx
+      );
+
+
+    if(
+      dy>45&&
+      dy>dx*.7
+    ){
+
+      jump();
+
+    }
+
+    e.preventDefault();
+
+  },
+  {passive:false}
+);
+
+
+/* =====================================================
+   KEYBOARD
+===================================================== */
+
+document.addEventListener(
+  "keydown",
+  e=>{
+
+    if(
+      e.code==="ArrowUp"||
+      e.code==="Space"
+    ){
+
+      jump();
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   BUTTONS
+===================================================== */
+
+document.getElementById(
+  "startBtn"
+).onclick=start;
+
+
+document.getElementById(
+  "againBtn"
+).onclick=start;
+
+
+/* =====================================================
+   LOAD SAVED NAME
+===================================================== */
+
+const savedName=
+  localStorage.getItem(
+    "wildRunnerName"
+  );
+
+
+if(savedName){
+
+  playerName=
+    savedName;
+
+  nameInput.value=
+    savedName;
+
+}
+
+
+/* =====================================================
+   INITIAL LEADERBOARD
+===================================================== */
+
+loadLeaderboard();
+
+
+/* =====================================================
+   REFRESH LEADERBOARD EVERY 3 SECONDS
+===================================================== */
+
+setInterval(
+  loadLeaderboard,
+  3000
+);
 
 </script>
 
 </body>
-
 </html>
