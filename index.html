@@ -16,8 +16,8 @@ html,body{
   width:100%;
   height:100%;
   overflow:hidden;
-  background:#111;
   font-family:Arial,sans-serif;
+  background:#111;
 }
 
 body{
@@ -32,11 +32,12 @@ body{
   height:100%;
   max-width:600px;
   overflow:hidden;
-  background:#8ed0ff;
+  background:#82cef5;
 }
 
 canvas{
-  display:block;
+  position:absolute;
+  inset:0;
   width:100%;
   height:100%;
   touch-action:none;
@@ -44,38 +45,37 @@ canvas{
 
 #hud{
   position:absolute;
-  top:14px;
-  left:14px;
-  right:14px;
+  top:12px;
+  left:12px;
+  right:12px;
   display:flex;
   justify-content:space-between;
   color:white;
-  font-weight:800;
-  font-size:20px;
+  font-size:19px;
+  font-weight:bold;
   text-shadow:2px 2px 3px #000;
-  pointer-events:none;
   z-index:20;
+  pointer-events:none;
 }
 
 #leaderboard{
   position:absolute;
-  top:52px;
+  top:48px;
   right:10px;
-  width:190px;
-  max-height:220px;
+  width:205px;
+  max-height:225px;
   overflow:hidden;
-  background:rgba(0,0,0,.80);
-  color:white;
   padding:10px;
-  border-radius:12px;
+  border-radius:13px;
+  background:rgba(0,0,0,.82);
+  color:white;
+  z-index:40;
   font-size:14px;
-  z-index:25;
 }
 
-#leaderboard b{
-  display:block;
+#leaderboardTitle{
+  font-weight:bold;
   margin-bottom:6px;
-  font-size:15px;
 }
 
 #leaderboardList{
@@ -86,30 +86,29 @@ canvas{
   position:absolute;
   inset:0;
   display:flex;
-  align-items:center;
   justify-content:center;
-  background:rgba(0,0,0,.42);
-  padding:25px;
-  z-index:30;
+  align-items:center;
+  padding:20px;
+  background:rgba(0,0,0,.38);
+  z-index:50;
 }
 
 .card{
   width:min(92%,390px);
-  background:rgba(255,255,255,.97);
-  border-radius:22px;
   padding:28px 22px;
+  border-radius:22px;
+  background:white;
   text-align:center;
-  box-shadow:0 12px 40px rgba(0,0,0,.35);
+  box-shadow:0 12px 40px rgba(0,0,0,.4);
 }
 
 h1{
-  margin:0 0 8px;
-  font-size:42px;
-  color:#163d20;
+  margin:0 0 10px;
+  color:#174b28;
+  font-size:40px;
 }
 
 h2{
-  margin:0 0 12px;
   color:#222;
 }
 
@@ -128,20 +127,15 @@ input{
 }
 
 button{
-  margin-top:14px;
   width:100%;
+  margin-top:14px;
   padding:14px;
   border:0;
   border-radius:12px;
   background:#176b32;
   color:white;
-  font-size:19px;
-  font-weight:800;
-}
-
-.small{
-  font-size:14px;
-  color:#666;
+  font-size:18px;
+  font-weight:bold;
 }
 
 .hidden{
@@ -150,15 +144,15 @@ button{
 
 #hint{
   position:absolute;
-  bottom:15px;
   left:0;
   right:0;
+  bottom:15px;
   text-align:center;
   color:white;
-  font-weight:700;
-  text-shadow:1px 1px 3px #000;
-  pointer-events:none;
+  font-weight:bold;
+  text-shadow:2px 2px 3px #000;
   z-index:20;
+  pointer-events:none;
 }
 </style>
 </head>
@@ -171,11 +165,11 @@ button{
 
 <div id="hud">
   <div>🍎 <span id="score">0</span></div>
-  <div>🏃 WILD RUNNER</div>
+  <div>🏃 <span id="playerHud">WILD RUNNER</span></div>
 </div>
 
 <div id="leaderboard">
-  <b>🏆 Weekly Top 10</b>
+  <div id="leaderboardTitle">🏆 Weekly Top 10</div>
   <div id="leaderboardList">Loading...</div>
 </div>
 
@@ -184,9 +178,7 @@ button{
 
     <h1>🌿 WILD RUNNER</h1>
 
-    <p>
-      Run through the jungle and collect apples!
-    </p>
+    <p>Run, jump and collect apples!</p>
 
     <input
       id="nameInput"
@@ -195,42 +187,32 @@ button{
       autocomplete="off"
     >
 
-    <button id="startBtn">
-      START RUN
-    </button>
+    <button id="startBtn">START RUN</button>
 
-    <p class="small">
-      Swipe ↑ to jump over obstacles.
+    <p>
+      <small>Swipe ↑ to jump over obstacles.</small>
     </p>
 
   </div>
 </div>
 
 <div id="gameOverPanel" class="panel hidden">
-
   <div class="card">
 
     <h2>💥 GAME OVER</h2>
 
-    <p>
-      You hit an obstacle!
-    </p>
+    <p>You hit an obstacle!</p>
 
     <h2>
       Score: <span id="finalScore">0</span>
     </h2>
 
-    <button id="againBtn">
-      RUN AGAIN
-    </button>
+    <button id="againBtn">RUN AGAIN</button>
 
   </div>
-
 </div>
 
-<div id="hint">
-  SWIPE UP ↑ TO JUMP
-</div>
+<div id="hint">SWIPE UP ↑ TO JUMP</div>
 
 </div>
 
@@ -245,9 +227,12 @@ const SUPABASE_URL =
 "https://ryecmnwbdlxvjigxgfml.supabase.co";
 
 /*
-KEEP YOUR EXISTING ANON KEY HERE.
-Do not use your database password.
-Do not use your service-role key.
+IMPORTANT:
+Keep the EXACT anon key that is already in your
+current working index.html.
+
+Do NOT use your database password.
+Do NOT use your service-role key.
 */
 
 const SUPABASE_KEY =
@@ -262,10 +247,13 @@ const canvas =
 document.getElementById("canvas");
 
 const ctx =
-canvas.getContext("2d"); 
+canvas.getContext("2d");
 
 const scoreEl =
 document.getElementById("score");
+
+const finalScore =
+document.getElementById("finalScore");
 
 const startPanel =
 document.getElementById("startPanel");
@@ -276,15 +264,15 @@ document.getElementById("gameOverPanel");
 const nameInput =
 document.getElementById("nameInput");
 
-const finalScore =
-document.getElementById("finalScore");
+const playerHud =
+document.getElementById("playerHud");
 
 const leaderboardList =
 document.getElementById("leaderboardList");
 
 
 /* =====================================================
-   VARIABLES
+   GAME VARIABLES
 ===================================================== */
 
 let W=0;
@@ -295,21 +283,21 @@ let running=false;
 
 let score=0;
 
-let last=0;
+let playerName="";
+
+let groundY=0;
+
+let speed=320;
 
 let spawnTimer=0;
 
 let appleTimer=0;
 
-let speed=330;
-
-let groundY=0;
+let lastTime=0;
 
 let obstacles=[];
 
 let apples=[];
-
-let playerName="";
 
 let audioCtx=null;
 
@@ -335,7 +323,7 @@ const player={
 function resize(){
 
   dpr=Math.min(
-    window.devicePixelRatio||1,
+    window.devicePixelRatio || 1,
     2
   );
 
@@ -344,26 +332,18 @@ function resize(){
   H=canvas.clientHeight;
 
   canvas.width=W*dpr;
-
   canvas.height=H*dpr;
 
   ctx.setTransform(
-    dpr,
-    0,
-    0,
-    dpr,
-    0,
-    0
+    dpr,0,0,dpr,0,0
   );
 
   groundY=H-105;
 
   if(!running){
 
-    player.x=W*.23;
-
-    player.y=
-      groundY-player.h;
+    player.x=W*.22;
+    player.y=groundY-player.h;
 
   }
 
@@ -378,145 +358,83 @@ resize();
 
 
 /* =====================================================
-   ROUNDED RECTANGLE
-===================================================== */
-
-function rr(
-  x,
-  y,
-  w,
-  h,
-  r
-){
-
-  ctx.beginPath();
-
-  ctx.roundRect(
-    x,
-    y,
-    w,
-    h,
-    r
-  );
-
-}
-
-
-/* =====================================================
    BACKGROUND
 ===================================================== */
 
-function background(){
+function drawBackground(){
 
-  let g=
+  const sky=
     ctx.createLinearGradient(
-      0,
-      0,
-      0,
-      H
+      0,0,0,H
     );
 
-  g.addColorStop(
+  sky.addColorStop(
     0,
-    "#74c9ff"
+    "#65c4f5"
   );
 
-  g.addColorStop(
+  sky.addColorStop(
     .55,
-    "#b7e7ff"
+    "#b9e9ff"
   );
 
-  g.addColorStop(
+  sky.addColorStop(
     .56,
-    "#79bd55"
+    "#7fc45a"
   );
 
-  g.addColorStop(
+  sky.addColorStop(
     1,
-    "#39752f"
+    "#37742d"
   );
 
-  ctx.fillStyle=g;
+  ctx.fillStyle=sky;
 
   ctx.fillRect(
-    0,
-    0,
-    W,
-    H
+    0,0,W,H
   );
 
 
-  ctx.fillStyle="#6da36d";
+  /* distant hills */
+
+  ctx.fillStyle="#60935e";
 
   ctx.beginPath();
 
-  ctx.moveTo(
-    0,
-    groundY-80
-  );
+  ctx.moveTo(0,groundY-70);
 
   ctx.lineTo(
-    W*.2,
-    groundY-210
-  );
-
-  ctx.lineTo(
-    W*.42,
-    groundY-80
-  );
-
-  ctx.lineTo(
-    W*.65,
+    W*.20,
     groundY-190
   );
 
   ctx.lineTo(
-    W,
+    W*.42,
     groundY-70
   );
 
   ctx.lineTo(
-    W,
-    groundY
+    W*.67,
+    groundY-180
   );
 
   ctx.lineTo(
-    0,
-    groundY
+    W,
+    groundY-60
   );
+
+  ctx.lineTo(W,groundY);
+
+  ctx.lineTo(0,groundY);
+
+  ctx.closePath();
 
   ctx.fill();
 
 
-  let off=
-    (
-      performance.now()/1000*
-      speed*.08
-    )%120;
+  /* ground */
 
-
-  for(
-    let x=-120-off;
-    x<W+120;
-    x+=120
-  ){
-
-    tree(
-      x,
-      groundY-10,
-      1
-    );
-
-    tree(
-      x+55,
-      groundY-5,
-      .72
-    );
-
-  }
-
-
-  ctx.fillStyle="#2d6b2a";
+  ctx.fillStyle="#2e7029";
 
   ctx.fillRect(
     0,
@@ -525,167 +443,124 @@ function background(){
     H-groundY
   );
 
-}
 
+  /* grass */
 
-/* =====================================================
-   TREE
-===================================================== */
+  ctx.strokeStyle="#3f8835";
 
-function tree(
-  x,
-  y,
-  s
-){
+  ctx.lineWidth=2;
 
-  ctx.save();
-
-  ctx.translate(
-    x,
-    y
-  );
-
-  ctx.scale(
-    s,
-    s
-  );
-
-  ctx.fillStyle="#5b3924";
-
-  ctx.fillRect(
-    -10,
-    -145,
-    20,
-    145
-  );
-
-  ctx.fillStyle="#174f25";
-
-  [
-    [0,-155,48],
-    [35,-125,40],
-    [-35,-125,40],
-    [0,-105,55]
-  ].forEach(a=>{
+  for(
+    let x=0;
+    x<W;
+    x+=18
+  ){
 
     ctx.beginPath();
 
-    ctx.arc(
-      a[0],
-      a[1],
-      a[2],
-      0,
-      Math.PI*2
+    ctx.moveTo(
+      x,
+      groundY+8
     );
 
-    ctx.fill();
+    ctx.lineTo(
+      x+4,
+      groundY-2
+    );
 
-  });
+    ctx.stroke();
 
-  ctx.restore();
+  }
 
 }
 
 
 /* =====================================================
    RUNNER
-   FACE = RIGHT
+   CLEARLY FACING RIGHT
 ===================================================== */
 
-function playerDraw(){
+function drawPlayer(){
 
-  const x=
-    player.x;
-
-  const y=
-    player.y;
+  const x=player.x;
+  const y=player.y;
 
 
-  /*
-    LEFT LEG
-  */
+  /* back leg */
 
   ctx.strokeStyle="#263238";
-
   ctx.lineWidth=8;
-
   ctx.lineCap="round";
 
   ctx.beginPath();
 
   ctx.moveTo(
-    x+17,
-    y+52
+    x+16,
+    y+51
   );
 
   ctx.lineTo(
-    x+9,
+    x+7,
     y+68
   );
 
   ctx.stroke();
 
 
-  /*
-    RIGHT LEG
-  */
+  /* front leg */
 
   ctx.beginPath();
 
   ctx.moveTo(
     x+28,
-    y+52
+    y+51
   );
 
   ctx.lineTo(
-    x+37,
+    x+39,
     y+68
   );
 
   ctx.stroke();
 
 
-  /*
-    SHOES
-  */
+  /* shoes */
 
   ctx.fillStyle="#111";
 
   ctx.fillRect(
-    x+2,
+    x,
     y+66,
-    16,
+    17,
     6
   );
 
   ctx.fillRect(
-    x+32,
+    x+34,
     y+66,
-    16,
+    17,
     6
   );
 
 
-  /*
-    BODY
-  */
+  /* body */
 
   ctx.fillStyle="#176b32";
 
-  rr(
+  ctx.beginPath();
+
+  ctx.roundRect(
     x+7,
-    y+23,
+    y+22,
     31,
-    34,
+    35,
     8
   );
 
   ctx.fill();
 
 
-  /*
-    BACK ARM
-  */
+  /* back arm */
 
   ctx.strokeStyle="#f0b27a";
 
@@ -695,39 +570,35 @@ function playerDraw(){
 
   ctx.moveTo(
     x+10,
-    y+28
+    y+29
   );
 
   ctx.lineTo(
     x-2,
-    y+43
+    y+44
   );
 
   ctx.stroke();
 
 
-  /*
-    FRONT ARM
-  */
+  /* front arm */
 
   ctx.beginPath();
 
   ctx.moveTo(
     x+36,
-    y+28
+    y+29
   );
 
   ctx.lineTo(
     x+49,
-    y+39
+    y+40
   );
 
   ctx.stroke();
 
 
-  /*
-    HEAD
-  */
+  /* head */
 
   ctx.fillStyle="#f0b27a";
 
@@ -744,9 +615,7 @@ function playerDraw(){
   ctx.fill();
 
 
-  /*
-    HAIR
-  */
+  /* hair */
 
   ctx.fillStyle="#24180f";
 
@@ -754,7 +623,7 @@ function playerDraw(){
 
   ctx.arc(
     x+23,
-    y+7,
+    y+8,
     15,
     Math.PI,
     Math.PI*2
@@ -764,9 +633,7 @@ function playerDraw(){
 
 
   /*
-    RIGHT-FACING EYE
-    This is deliberately on
-    the RIGHT side of the head.
+    EYE ON RIGHT SIDE
   */
 
   ctx.fillStyle="#111";
@@ -776,7 +643,7 @@ function playerDraw(){
   ctx.arc(
     x+30,
     y+11,
-    2.5,
+    2.6,
     0,
     Math.PI*2
   );
@@ -785,7 +652,7 @@ function playerDraw(){
 
 
   /*
-    RIGHT-FACING NOSE
+    NOSE POINTS RIGHT
   */
 
   ctx.beginPath();
@@ -796,7 +663,7 @@ function playerDraw(){
   );
 
   ctx.lineTo(
-    x+42,
+    x+43,
     y+18
   );
 
@@ -810,11 +677,9 @@ function playerDraw(){
   ctx.fill();
 
 
-  /*
-    SMALL SMILE
-  */
+  /* smile */
 
-  ctx.strokeStyle="#7d3b2b";
+  ctx.strokeStyle="#713a2b";
 
   ctx.lineWidth=1.5;
 
@@ -822,7 +687,7 @@ function playerDraw(){
 
   ctx.arc(
     x+34,
-    y+20,
+    y+19,
     5,
     0,
     Math.PI/2
@@ -837,7 +702,7 @@ function playerDraw(){
    OBSTACLES
 ===================================================== */
 
-function obstacleDraw(o){
+function drawObstacle(o){
 
   ctx.save();
 
@@ -847,24 +712,7 @@ function obstacleDraw(o){
   );
 
 
-  if(o.type==="log"){
-
-    ctx.fillStyle="#70411f";
-
-    rr(
-      0,
-      10,
-      o.w,
-      25,
-      9
-    );
-
-    ctx.fill();
-
-  }
-
-
-  else if(o.type==="rock"){
+  if(o.type==="rock"){
 
     ctx.fillStyle="#777";
 
@@ -872,13 +720,13 @@ function obstacleDraw(o){
 
     ctx.moveTo(0,35);
 
-    ctx.lineTo(8,10);
+    ctx.lineTo(8,11);
 
     ctx.lineTo(27,0);
 
-    ctx.lineTo(45,14);
+    ctx.lineTo(45,13);
 
-    ctx.lineTo(51,35);
+    ctx.lineTo(52,35);
 
     ctx.closePath();
 
@@ -886,50 +734,63 @@ function obstacleDraw(o){
 
   }
 
-
   else if(o.type==="bush"){
 
-    ctx.fillStyle="#1e6327";
+    ctx.fillStyle="#185d24";
 
     [
-      [12,24,18],
-      [29,15,21],
-      [48,25,19]
-    ].forEach(a=>{
+      [12,26,18],
+      [30,15,21],
+      [49,26,19]
+    ].forEach(
+      p=>{
 
-      ctx.beginPath();
+        ctx.beginPath();
 
-      ctx.arc(
-        a[0],
-        a[1],
-        a[2],
-        0,
-        Math.PI*2
-      );
+        ctx.arc(
+          p[0],
+          p[1],
+          p[2],
+          0,
+          Math.PI*2
+        );
 
-      ctx.fill();
+        ctx.fill();
 
-    });
+      }
+    );
 
   }
 
-
-  else{
+  else if(o.type==="fallen"){
 
     ctx.fillStyle="#70411f";
 
     ctx.save();
 
-    ctx.rotate(-.15);
+    ctx.rotate(-.12);
 
     ctx.fillRect(
       0,
-      14,
-      o.w,
-      24
+      12,
+      68,
+      25
     );
 
     ctx.restore();
+
+  }
+
+  else{
+
+    ctx.fillStyle="#70411f";
+
+    ctx.fillRect(
+      0,
+      10,
+      65,
+      25
+    );
 
   }
 
@@ -939,10 +800,10 @@ function obstacleDraw(o){
 
 
 /* =====================================================
-   APPLE
+   APPLES
 ===================================================== */
 
-function appleDraw(a){
+function drawApple(a){
 
   ctx.fillStyle="#e52d2d";
 
@@ -958,7 +819,8 @@ function appleDraw(a){
 
   ctx.fill();
 
-  ctx.fillStyle="#4a9b35";
+
+  ctx.fillStyle="#4d9c35";
 
   ctx.beginPath();
 
@@ -978,14 +840,31 @@ function appleDraw(a){
 
 
 /* =====================================================
-   SOUND
+   AUDIO
 ===================================================== */
+
+function startAudio(){
+
+  if(audioCtx)return;
+
+  try{
+
+    audioCtx=
+      new(
+        window.AudioContext ||
+        window.webkitAudioContext
+      )();
+
+    audioCtx.resume();
+
+  }catch(e){}
+
+}
+
 
 function beep(
   frequency,
-  duration,
-  type,
-  volume
+  duration
 ){
 
   if(!audioCtx)return;
@@ -998,13 +877,12 @@ function beep(
     const gain=
       audioCtx.createGain();
 
-    osc.type=type;
-
     osc.frequency.value=
       frequency;
 
-    gain.gain.value=
-      volume;
+    osc.type="square";
+
+    gain.gain.value=.06;
 
     osc.connect(gain);
 
@@ -1024,25 +902,6 @@ function beep(
 }
 
 
-function audioStart(){
-
-  if(audioCtx)return;
-
-  try{
-
-    audioCtx=
-      new(
-        window.AudioContext||
-        window.webkitAudioContext
-      )();
-
-    audioCtx.resume();
-
-  }catch(e){}
-
-}
-
-
 /* =====================================================
    JUMP
 ===================================================== */
@@ -1050,66 +909,62 @@ function audioStart(){
 function jump(){
 
   if(
-    !running||
+    !running ||
     !player.onGround
   ){
     return;
   }
 
-  player.vy=-720;
+  player.vy=-700;
 
   player.onGround=false;
 
   beep(
     520,
-    .12,
-    "square",
-    .07
+    .12
   );
 
 }
 
 
 /* =====================================================
-   SPAWN
+   SPAWN OBSTACLE
 ===================================================== */
 
 function spawnObstacle(){
 
   const types=[
-    "log",
     "rock",
     "bush",
-    "tree"
+    "fallen",
+    "log"
   ];
 
   const type=
     types[
       Math.floor(
-        Math.random()*
-        types.length
+        Math.random()*types.length
       )
     ];
 
 
-  const w=
-    type==="tree"
-      ?65
-      :type==="bush"
-      ?60
-      :type==="rock"
-      ?52
-      :65;
+  let w=55;
+  let h=35;
 
 
-  const h=
-    type==="tree"
-      ?52
-      :type==="bush"
-      ?42
-      :type==="rock"
-      ?35
-      :35;
+  if(type==="bush"){
+
+    w=60;
+    h=42;
+
+  }
+
+  if(type==="fallen"){
+
+    w=68;
+    h=37;
+
+  }
 
 
   obstacles.push({
@@ -1129,17 +984,23 @@ function spawnObstacle(){
 }
 
 
+/* =====================================================
+   SPAWN APPLE
+===================================================== */
+
 function spawnApple(){
 
   apples.push({
 
-    x:W+20,
+    x:W+25,
 
     y:
-      Math.random()<.45
-      ?groundY-95-
-       Math.random()*55
-      :groundY-18,
+      groundY-
+      (
+        Math.random()<.45
+        ?70+Math.random()*80
+        :20
+      ),
 
     r:11
 
@@ -1152,20 +1013,20 @@ function spawnApple(){
    COLLISION
 ===================================================== */
 
-function collide(a,b){
+function hit(a,b){
 
   return(
-    a.x+6<
-      b.x+b.w-5&&
+    a.x+7<
+      b.x+b.w-5 &&
 
-    a.x+a.w-6>
-      b.x+5&&
+    a.x+a.w-7>
+      b.x+5 &&
 
     a.y+8<
-      b.y+b.h&&
+      b.y+b.h &&
 
     a.y+a.h-4>
-      b.y+3
+      b.y+4
   );
 
 }
@@ -1176,12 +1037,12 @@ function collect(a){
   return(
     Math.hypot(
       player.x+
-        player.w/2-
-        a.x,
+      player.w/2-
+      a.x,
 
       player.y+
-        player.h/2-
-        a.y
+      player.h/2-
+      a.y
     )<34
   );
 
@@ -1189,16 +1050,14 @@ function collect(a){
 
 
 /* =====================================================
-   WEEK
+   WEEK START
 ===================================================== */
 
 function getWeekStart(){
 
-  const d=
-    new Date();
+  const d=new Date();
 
-  const day=
-    d.getDay();
+  const day=d.getDay();
 
   const diff=
     day===0
@@ -1244,14 +1103,20 @@ async function saveScore(){
 
   try{
 
-    const weekStart=
+    if(
+      !playerName ||
+      score<=0
+    ){
+      return;
+    }
+
+
+    const week=
       getWeekStart();
 
 
     /*
-      Get ALL rows for this week.
-      We don't search by exact name here,
-      because old duplicate rows may exist.
+      Read all scores from this week.
     */
 
     const response=
@@ -1259,9 +1124,236 @@ async function saveScore(){
         SUPABASE_URL+
         "/rest/v1/leaderboard"+
         "?week_start=eq."+
-        weekStart+
+        encodeURIComponent(week)+
         "&select=id,name,score",
         {
+          method:"GET",
+
+          headers:{
+            "apikey":SUPABASE_KEY,
+            "Authorization":
+              "Bearer "+SUPABASE_KEY
+          }
+        }
+      );
+
+
+    if(!response.ok){
+
+      console.log(
+        "Score read failed:",
+        await response.text()
+      );
+
+      return;
+
+    }
+
+
+    const rows=
+      await response.json();
+
+
+    const wanted=
+      playerName
+        .trim()
+        .toLowerCase();
+
+
+    /*
+      Find this player's current
+      highest score.
+    */
+
+    let oldBest=0;
+
+    let bestRow=null;
+
+
+    for(
+      const row of rows
+    ){
+
+      if(
+        String(row.name)
+          .trim()
+          .toLowerCase()
+        ===wanted
+      ){
+
+        const old=
+          Number(row.score)||0;
+
+        if(old>oldBest){
+
+          oldBest=old;
+
+          bestRow=row;
+
+        }
+
+      }
+
+    }
+
+
+    /*
+      LOWER score:
+      do absolutely nothing.
+    */
+
+    if(score<=oldBest){
+
+      return;
+
+    }
+
+
+    /*
+      HIGHER score:
+      update the existing row.
+    */
+
+    if(bestRow){
+
+      const updateResponse=
+        await fetch(
+          SUPABASE_URL+
+          "/rest/v1/leaderboard"+
+          "?id=eq."+
+          encodeURIComponent(
+            bestRow.id
+          ),
+          {
+            method:"PATCH",
+
+            headers:{
+              "apikey":
+                SUPABASE_KEY,
+
+              "Authorization":
+                "Bearer "+
+                SUPABASE_KEY,
+
+              "Content-Type":
+                "application/json",
+
+              "Prefer":
+                "return=minimal"
+            },
+
+            body:
+              JSON.stringify({
+                score:score
+              })
+          }
+        );
+
+
+      if(!updateResponse.ok){
+
+        console.log(
+          "Score update failed:",
+          await updateResponse.text()
+        );
+
+      }
+
+    }
+
+    /*
+      FIRST score:
+      create a row.
+    */
+
+    else{
+
+      const insertResponse=
+        await fetch(
+          SUPABASE_URL+
+          "/rest/v1/leaderboard",
+          {
+            method:"POST",
+
+            headers:{
+              "apikey":
+                SUPABASE_KEY,
+
+              "Authorization":
+                "Bearer "+
+                SUPABASE_KEY,
+
+              "Content-Type":
+                "application/json",
+
+              "Prefer":
+                "return=minimal"
+            },
+
+            body:
+              JSON.stringify({
+
+                name:
+                  playerName.trim(),
+
+                score:
+                  score,
+
+                week_start:
+                  week
+
+              })
+          }
+        );
+
+
+      if(!insertResponse.ok){
+
+        console.log(
+          "Score insert failed:",
+          await insertResponse.text()
+        );
+
+      }
+
+    }
+
+  }
+  catch(error){
+
+    console.log(
+      "Save score error:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   LEADERBOARD
+===================================================== */
+
+async function loadLeaderboard(){
+
+  try{
+
+    const week=
+      getWeekStart();
+
+
+    const response=
+      await fetch(
+        SUPABASE_URL+
+        "/rest/v1/leaderboard"+
+        "?week_start=eq."+
+        encodeURIComponent(week)+
+        "&select=name,score"+
+        "&limit=1000",
+        {
+          method:"GET",
+
           headers:{
             "apikey":
               SUPABASE_KEY,
@@ -1274,177 +1366,123 @@ async function saveScore(){
       );
 
 
+    if(!response.ok){
+
+      leaderboardList.textContent=
+        "Leaderboard unavailable";
+
+      return;
+
+    }
+
+
     const rows=
       await response.json();
 
 
-    if(!response.ok){
-
-      console.log(
-        "Leaderboard read error:",
-        rows
-      );
-
-      return;
-
-    }
-
-
-    const target=
-      playerName
-        .trim()
-        .toLowerCase();
-
-
     /*
-      Find EVERY row belonging
-      to this player.
+      IMPORTANT:
+      One player = one leaderboard entry.
+      Highest score wins.
     */
 
-    const mine=
-      rows.filter(
-        row=>
-          row.name
-            .trim()
-            .toLowerCase()
-          ===target
-      );
+    const players=
+      new Map();
 
 
-    let highest=0;
+    for(
+      const row of rows
+    ){
 
-    let highestRow=null;
+      const name=
+        String(row.name||"")
+          .trim();
+
+      if(!name)continue;
 
 
-    mine.forEach(row=>{
+      const key=
+        name.toLowerCase();
 
-      const s=
+
+      const value=
         Number(row.score)||0;
 
-      if(s>highest){
 
-        highest=s;
+      if(
+        !players.has(key) ||
+        value>
+        players.get(key).score
+      ){
 
-        highestRow=row;
+        players.set(
+          key,
+          {
+            name:name,
+            score:value
+          }
+        );
 
       }
 
-    });
+    }
 
 
-    /*
-      If old score is already higher,
-      don't change it.
-    */
+    const top=
+      Array.from(
+        players.values()
+      )
+      .sort(
+        (a,b)=>
+          b.score-a.score
+      )
+      .slice(0,10);
 
-    if(highest>=score){
 
-      loadLeaderboard();
+    if(top.length===0){
+
+      leaderboardList.textContent=
+        "No scores yet";
 
       return;
 
     }
 
 
-    /*
-      If a row already exists,
-      UPDATE the highest row.
-    */
-
-    if(highestRow){
-
-      await fetch(
-        SUPABASE_URL+
-        "/rest/v1/leaderboard"+
-        "?id=eq."+
-        highestRow.id,
-        {
-          method:"PATCH",
-
-          headers:{
-            "apikey":
-              SUPABASE_KEY,
-
-            "Authorization":
-              "Bearer "+
-              SUPABASE_KEY,
-
-            "Content-Type":
-              "application/json",
-
-            "Prefer":
-              "return=minimal"
-          },
-
-          body:
-            JSON.stringify({
-              score:score
-            })
-        }
-      );
-
-    }
-
-
-    /*
-      If the player has never scored
-      this week, INSERT a new row.
-    */
-
-    else{
-
-      await fetch(
-        SUPABASE_URL+
-        "/rest/v1/leaderboard",
-        {
-          method:"POST",
-
-          headers:{
-            "apikey":
-              SUPABASE_KEY,
-
-            "Authorization":
-              "Bearer "+
-              SUPABASE_KEY,
-
-            "Content-Type":
-              "application/json",
-
-            "Prefer":
-              "return=minimal"
-          },
-
-          body:
-            JSON.stringify({
-
-              name:
-                playerName.trim(),
-
-              score:
-                score,
-
-              week_start:
-                weekStart
-
-            })
-        }
-      );
-
-    }
-
-
-    await loadLeaderboard();
+    leaderboardList.innerHTML=
+      top.map(
+        (p,i)=>
+          `<div>${i+1}. ${escapeHTML(p.name)} — ${p.score}</div>`
+      ).join("");
 
   }
-
   catch(error){
 
     console.log(
-      "Save score error:",
+      "Leaderboard error:",
       error
     );
 
+    leaderboardList.textContent=
+      "Leaderboard unavailable";
+
   }
+
+}
+
+
+/* =====================================================
+   SAFE NAME DISPLAY
+===================================================== */
+
+function escapeHTML(value){
+
+  return String(value)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 
 }
 
@@ -1468,26 +1506,25 @@ async function gameOver(){
 
 
   /*
-    Save the score AFTER
-    stopping the game.
+    Save first, then refresh.
   */
 
   await saveScore();
+
+  await loadLeaderboard();
 
 }
 
 
 /* =====================================================
-   START GAME
+   START
 ===================================================== */
 
 function start(){
 
   /*
-    IMPORTANT:
-    First use localStorage.
-    Only ask for input if there
-    is no saved name.
+    Name is read from storage first.
+    Therefore RUN AGAIN does NOT ask again.
   */
 
   const saved=
@@ -1502,11 +1539,13 @@ function start(){
       saved;
 
   }
-
   else{
 
     const entered=
-      nameInput.value.trim();
+      nameInput.value
+        .trim()
+        .slice(0,16);
+
 
     if(!entered){
 
@@ -1516,8 +1555,10 @@ function start(){
 
     }
 
+
     playerName=
-      entered.slice(0,16);
+      entered;
+
 
     localStorage.setItem(
       "wildRunnerName",
@@ -1527,22 +1568,19 @@ function start(){
   }
 
 
-  /*
-    Hide the name input after
-    the first successful start.
-  */
-
-  nameInput.value=
+  playerHud.textContent=
     playerName;
 
 
   score=0;
 
-  speed=330;
+  scoreEl.textContent="0";
 
-  spawnTimer=0;
+  speed=320;
 
-  appleTimer=.4;
+  spawnTimer=.8;
+
+  appleTimer=.5;
 
   obstacles=[];
 
@@ -1550,7 +1588,7 @@ function start(){
 
 
   player.x=
-    W*.23;
+    W*.22;
 
   player.y=
     groundY-player.h;
@@ -1558,9 +1596,6 @@ function start(){
   player.vy=0;
 
   player.onGround=true;
-
-
-  scoreEl.textContent="0";
 
 
   startPanel
@@ -1574,10 +1609,11 @@ function start(){
 
   running=true;
 
-  audioStart();
+  startAudio();
 
-  last=
+  lastTime=
     performance.now();
+
 
   requestAnimationFrame(
     loop
@@ -1587,175 +1623,18 @@ function start(){
 
 
 /* =====================================================
-   LEADERBOARD
-===================================================== */
-
-async function loadLeaderboard(){
-
-  try{
-
-    const weekStart=
-      getWeekStart();
-
-
-    const response=
-      await fetch(
-        SUPABASE_URL+
-        "/rest/v1/leaderboard"+
-        "?week_start=eq."+
-        weekStart+
-        "&select=name,score"+
-        "&order=score.desc"+
-        "&limit=100",
-        {
-          headers:{
-            "apikey":
-              SUPABASE_KEY,
-
-            "Authorization":
-              "Bearer "+
-              SUPABASE_KEY
-          }
-        }
-      );
-
-
-    const rows=
-      await response.json();
-
-
-    if(!response.ok){
-
-      leaderboardList.textContent=
-        "Leaderboard unavailable";
-
-      console.log(
-        "Leaderboard error:",
-        rows
-      );
-
-      return;
-
-    }
-
-
-    /*
-      Combine duplicate names.
-      Each name gets ONE entry,
-      with its highest score.
-    */
-
-    const bestByName={};
-
-
-    rows.forEach(row=>{
-
-      const cleanName=
-        row.name
-          .trim();
-
-      const key=
-        cleanName
-          .toLowerCase();
-
-      const current=
-        Number(
-          row.score
-        )||0;
-
-
-      if(
-        !bestByName[key]||
-        current>
-        bestByName[key].score
-      ){
-
-        bestByName[key]={
-
-          name:cleanName,
-
-          score:current
-
-        };
-
-      }
-
-    });
-
-
-    /*
-      Sort highest to lowest.
-    */
-
-    const top=
-      Object.values(
-        bestByName
-      )
-      .sort(
-        (a,b)=>
-          b.score-a.score
-      )
-      .slice(0,10);
-
-
-    if(!top.length){
-
-      leaderboardList.textContent=
-        "No scores yet";
-
-      return;
-
-    }
-
-
-    leaderboardList.innerHTML=
-      top.map(
-        (row,index)=>
-          `<div>${index+1}. ${escapeHTML(row.name)} — ${row.score}</div>`
-      ).join("");
-
-  }
-
-  catch(error){
-
-    console.log(
-      "Leaderboard error:",
-      error
-    );
-
-    leaderboardList.textContent=
-      "Leaderboard unavailable";
-
-  }
-
-}
-
-
-/* =====================================================
-   SECURITY FOR PLAYER NAMES
-===================================================== */
-
-function escapeHTML(text){
-
-  return String(text)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-
-}
-
-
-/* =====================================================
-   GAME UPDATE
+   UPDATE
 ===================================================== */
 
 function update(dt){
 
   speed+=
-    dt*4;
+    dt*3;
 
+
+  /*
+    Gravity
+  */
 
   player.vy+=
     1900*dt;
@@ -1779,9 +1658,11 @@ function update(dt){
   }
 
 
-  spawnTimer-=dt;
+  /*
+    Obstacles
+  */
 
-  appleTimer-=dt;
+  spawnTimer-=dt;
 
 
   if(spawnTimer<=0){
@@ -1790,16 +1671,21 @@ function update(dt){
 
     spawnTimer=
       Math.max(
-        .72,
-        1.25-
-        Math.min(
-          score,
-          40
-        )*.012
+        .65,
+        1.15-
+        Math.min(score,50)*
+        .008
       )+
-      Math.random()*.35;
+      Math.random()*.4;
 
   }
+
+
+  /*
+    Apples
+  */
+
+  appleTimer-=dt;
 
 
   if(appleTimer<=0){
@@ -1808,50 +1694,41 @@ function update(dt){
 
     appleTimer=
       .65+
-      Math.random()*.7;
+      Math.random()*.6;
 
   }
 
 
-  obstacles.forEach(
-    o=>
-      o.x-=speed*dt
-  );
+  for(
+    const o of obstacles
+  ){
 
+    o.x-=
+      speed*dt;
 
-  apples.forEach(
-    a=>
-      a.x-=speed*dt
-  );
+  }
 
 
   for(
-    let i=
-      obstacles.length-1;
+    const a of apples
+  ){
 
-    i>=0;
+    a.x-=
+      speed*dt;
 
-    i--
+  }
+
+
+  /*
+    Obstacle collision
+  */
+
+  for(
+    const o of obstacles
   ){
 
     if(
-      obstacles[i].x+
-      obstacles[i].w<
-      -50
-    ){
-
-      obstacles.splice(
-        i,
-        1
-      );
-
-    }
-
-    else if(
-      collide(
-        player,
-        obstacles[i]
-      )
+      hit(player,o)
     ){
 
       gameOver();
@@ -1863,31 +1740,33 @@ function update(dt){
   }
 
 
+  /*
+    Remove old obstacles
+  */
+
+  obstacles=
+    obstacles.filter(
+      o=>
+        o.x+o.w>-60
+    );
+
+
+  /*
+    Apples
+  */
+
   for(
-    let i=
-      apples.length-1;
-
+    let i=apples.length-1;
     i>=0;
-
     i--
   ){
 
+    const a=
+      apples[i];
+
+
     if(
-      apples[i].x<
-      -30
-    ){
-
-      apples.splice(
-        i,
-        1
-      );
-
-    }
-
-    else if(
-      collect(
-        apples[i]
-      )
+      collect(a)
     ){
 
       score++;
@@ -1897,10 +1776,18 @@ function update(dt){
 
       beep(
         900,
-        .08,
-        "sine",
         .08
       );
+
+      apples.splice(
+        i,
+        1
+      );
+
+    }
+    else if(
+      a.x<-30
+    ){
 
       apples.splice(
         i,
@@ -1920,38 +1807,48 @@ function update(dt){
 
 function draw(){
 
-  background();
+  drawBackground();
 
-  apples.forEach(
-    appleDraw
-  );
+  for(
+    const a of apples
+  ){
 
-  obstacles.forEach(
-    obstacleDraw
-  );
+    drawApple(a);
 
-  playerDraw();
+  }
+
+
+  for(
+    const o of obstacles
+  ){
+
+    drawObstacle(o);
+
+  }
+
+
+  drawPlayer();
 
 }
 
 
 /* =====================================================
-   LOOP
+   MAIN LOOP
 ===================================================== */
 
-function loop(t){
+function loop(time){
 
   if(!running)return;
 
 
   const dt=
     Math.min(
-      (t-last)/1000,
+      (time-lastTime)/1000,
       .035
     );
 
 
-  last=t;
+  lastTime=time;
 
 
   update(dt);
@@ -1971,23 +1868,25 @@ function loop(t){
 
 
 /* =====================================================
-   TOUCH
+   SWIPE
 ===================================================== */
 
-let sy=0;
-let sx=0;
+let touchStartX=0;
+let touchStartY=0;
 
 
 canvas.addEventListener(
   "touchstart",
-  e=>{
+  function(e){
 
     const t=
       e.changedTouches[0];
 
-    sy=t.clientY;
+    touchStartX=
+      t.clientX;
 
-    sx=t.clientX;
+    touchStartY=
+      t.clientY;
 
     e.preventDefault();
 
@@ -1998,22 +1897,24 @@ canvas.addEventListener(
 
 canvas.addEventListener(
   "touchend",
-  e=>{
+  function(e){
 
     const t=
       e.changedTouches[0];
 
-    const dy=
-      sy-t.clientY;
-
     const dx=
       Math.abs(
-        t.clientX-sx
+        t.clientX-
+        touchStartX
       );
+
+    const dy=
+      touchStartY-
+      t.clientY;
 
 
     if(
-      dy>45&&
+      dy>45 &&
       dy>dx*.7
     ){
 
@@ -2034,10 +1935,10 @@ canvas.addEventListener(
 
 document.addEventListener(
   "keydown",
-  e=>{
+  function(e){
 
     if(
-      e.code==="ArrowUp"||
+      e.code==="ArrowUp" ||
       e.code==="Space"
     ){
 
@@ -2055,16 +1956,22 @@ document.addEventListener(
 
 document.getElementById(
   "startBtn"
-).onclick=start;
+).addEventListener(
+  "click",
+  start
+);
 
 
 document.getElementById(
   "againBtn"
-).onclick=start;
+).addEventListener(
+  "click",
+  start
+);
 
 
 /* =====================================================
-   LOAD SAVED NAME
+   REMEMBER NAME
 ===================================================== */
 
 const savedName=
@@ -2075,25 +1982,30 @@ const savedName=
 
 if(savedName){
 
-  playerName=
-    savedName;
+  playerName=savedName;
 
   nameInput.value=
+    savedName;
+
+  playerHud.textContent=
     savedName;
 
 }
 
 
 /* =====================================================
-   INITIAL LEADERBOARD
+   INITIAL DRAW + LEADERBOARD
 ===================================================== */
+
+draw();
 
 loadLeaderboard();
 
 
-/* =====================================================
-   REFRESH LEADERBOARD EVERY 3 SECONDS
-===================================================== */
+/*
+  Automatic leaderboard refresh:
+  every 3 seconds.
+*/
 
 setInterval(
   loadLeaderboard,
