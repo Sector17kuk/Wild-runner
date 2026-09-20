@@ -1871,55 +1871,76 @@ function loop(time){
 
 
 /* =====================================================
-   SWIPE
+
+   TOUCH CONTROLS
+
 ===================================================== */
 
-let touchStartX=0;
-let touchStartY=0;
+let touchStartX = 0;
 
+let touchStartY = 0;
 
 canvas.addEventListener(
+
   "touchstart",
-  function(e){
 
-    const t=
-      e.changedTouches[0];
+  function(e) {
 
-    touchStartX=
-      t.clientX;
+    const t = e.changedTouches[0];
 
-    touchStartY=
-      t.clientY;
+    touchStartX = t.clientX;
+
+    touchStartY = t.clientY;
 
     e.preventDefault();
 
   },
-  {passive:false}
+
+  { passive: false }
+
 );
 
-
 canvas.addEventListener(
+
   "touchend",
-  function(e){
 
-    const t=
-      e.changedTouches[0];
+  function(e) {
 
-    const dx=
-      Math.abs(
-        t.clientX-
-        touchStartX
-      );
+    const t = e.changedTouches[0];
 
-    const dy=
-      touchStartY-
-      t.clientY;
+    const dx = Math.abs(
 
+      t.clientX - touchStartX
 
-    if(
-      dy>45 &&
-      dy>dx*.7
-    ){
+    );
+
+    const dy =
+
+      touchStartY - t.clientY;
+
+    /* SWIPE UP */
+
+    if (
+
+      dy > 45 &&
+
+      dy > dx * 0.7
+
+    ) {
+
+      jump();
+
+    }
+
+    /* SINGLE TAP */
+
+    else if (
+
+      dx < 20 &&
+
+      Math.abs(dy) < 20
+
+    ) {
 
       jump();
 
@@ -1928,7 +1949,9 @@ canvas.addEventListener(
     e.preventDefault();
 
   },
-  {passive:false}
+
+  { passive: false }
+
 );
 
 
