@@ -2015,6 +2015,48 @@ setInterval(
   3000
 );
 
+document.getElementById("shareBtn").addEventListener("click", async function () {
+
+  const finalScore =
+    document.getElementById("finalScore").textContent;
+
+  const shareText =
+    "🏃 I scored " + finalScore +
+    " in Wild Runner! 🔥\n\n" +
+    "Can you beat my score?\n\n" +
+    "🎮 Play Wild Runner:\n" +
+    window.location.href;
+
+  if (navigator.share) {
+
+    try {
+
+      await navigator.share({
+        title: "Wild Runner",
+        text: shareText
+      });
+
+    } catch (error) {
+      // Player closed the share menu
+    }
+
+  } else {
+
+    try {
+
+      await navigator.clipboard.writeText(shareText);
+
+      alert("Score copied! 🔥 Send it to your friends.");
+
+    } catch (error) {
+
+      alert(shareText);
+
+    }
+
+  }
+
+});
 </script>
 
 </body>
